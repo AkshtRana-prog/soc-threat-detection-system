@@ -1,0 +1,7 @@
+Jun 10 10:15:32 kali sshd[1234]: Failed password for invalid user admin from 192.168.1.10 port 22 ssh2
+Jun 10 10:15:40 kali sshd[1234]: Failed password for invalid user root from 192.168.1.10 port 22 ssh2
+Jun 10 10:16:01 kali sshd[1234]: Failed password for invalid user test from 192.168.1.10 port 22 ssh2
+Jun 10 10:16:20 kali sshd[1234]: Failed password for invalid user guest from 192.168.1.10 port 22 ssh2
+Jun 10 10:16:50 kali sshd[1234]: Accepted password for kali from 192.168.1.10 port 22 ssh2
+Jun 10 10:20:11 kali sshd[1234]: Failed password for invalid user user1 from 10.0.0.5 port 22 ssh2
+Jun 10 10:20:25 kali sshd[1234]: Failed password for invalid user user2 from 10.0.0.5 port 22 ssh2
