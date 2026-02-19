@@ -62,3 +62,19 @@ def check_phishing(features):
         return "LOW RISK", reasons, "LOW"
     else:
         return "LEGITIMATE", reasons, "LOW"
+    
+    
+def detect_bruteforce(events, threshold=3):
+    ip_counter = {}
+    alerts = []
+
+    for event in events:
+        if event.get("failed_login") and event.get("ip"):
+            ip = event["ip"]
+            ip_counter[ip] = ip_counter.get(ip, 0) + 1
+
+    for ip, count in ip_counter.items():
+        if count >= threshold:
+            alerts.append(f"Brute-force attack suspected from IP: {ip} ({count} failed attempts)")
+
+    return alerts
