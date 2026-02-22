@@ -14,7 +14,7 @@ from parser.log_parser import parse_auth_log
 
 
 # ==========================
-# 🖥️ UI FUNCTIONS
+#  UI FUNCTIONS
 # ==========================
 
 def clear_screen():
@@ -53,7 +53,7 @@ def show_banner():
     print(" ╚══════╝ ╚═════╝  ╚═════╝ ")
     print("")
     print("      SOC Threat Detection System")
-    print("               v1.1.0")
+    print("               v1.1.1")
     print(f"{Colors.RESET}")
     print(f"{Colors.BLUE}{'='*60}{Colors.RESET}")
     print(f"{Colors.YELLOW}  System Time : {now}{Colors.RESET}")
@@ -62,7 +62,7 @@ def show_banner():
 
 
 # ==========================
-# 🚀 MAIN SYSTEM LOOP
+#  MAIN SYSTEM LOOP
 # ==========================
 
 def main():
@@ -96,7 +96,7 @@ def main():
             generate_alert(user_input, result, reasons, severity)
 
             # ==========================
-            # 📊 SOC LOG ANALYSIS
+            # SOC LOG ANALYSIS
             # ==========================
             print(f"\n{Colors.CYAN}{'─'*60}")
             print(" SOC LOG ANALYSIS")
@@ -116,7 +116,7 @@ def main():
 
             if correlation_alerts:
                 for alert in correlation_alerts:
-                    print(f"{Colors.MAGENTA}🔥 {alert}{Colors.RESET}")
+                    print(f"{Colors.MAGENTA} {alert}{Colors.RESET}")
             else:
                 print(f"{Colors.GREEN}✔ No correlated attack activity detected.{Colors.RESET}")
 
