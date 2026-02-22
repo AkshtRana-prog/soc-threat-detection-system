@@ -1,53 +1,43 @@
-🛡️ Mini SOC / SIEM Detection Engine
+# 🛡️ Mini SOC / SIEM Detection Engine
 
-A lightweight Python-based Mini SIEM (Security Information and Event Management) engine that performs:
+A lightweight Python-based **Mini SIEM (Security Information and Event Management) engine** that performs:
 
-🔍 Phishing & domain threat detection
+- 🔍 Phishing & domain threat detection  
+- 🔐 Brute-force attack detection  
+- 📂 Log parsing & analysis  
+- 🚨 Alert generation with severity levels  
 
-🔐 Brute-force attack detection
+This project simulates core SIEM functionalities similar to tools like Splunk — built from scratch for learning and experimentation.
 
-📂 Log parsing & analysis
+---
 
-🚨 Alert generation with severity levels
+## 🚀 Features
 
-This project simulates core SIEM functionalities similar to tools like Splunk — but built from scratch for learning and experimentation.
+### 🔎 Domain Threat Detection
+- Brand impersonation detection
+- Fuzzy typosquatting detection (e.g., `go0glr.com`)
+- Suspicious subdomain detection
+- IP-based URLs detection
+- Punycode detection
+- Redirect pattern detection
+- Risk scoring classification system
 
-🚀 Features
-🔎 Domain Threat Detection
+### 🔐 Brute Force Detection
+- Parses authentication logs
+- Detects repeated failed login attempts
+- Configurable threshold
+- IP-based alert generation
 
-Brand impersonation detection
+### 🖥 CLI Interface
+- Clean terminal UI
+- Color-coded alerts
+- Graceful exit handling (CTRL+C supported)
 
-Fuzzy typosquatting detection (e.g., go0glr.com)
+---
 
-Suspicious subdomain detection
+## 📁 Project Structure
 
-IP-based URLs
-
-Punycode detection
-
-Redirect pattern detection
-
-Risk scoring classification
-
-🔐 Brute Force Detection
-
-Parses authentication logs
-
-Detects repeated failed login attempts
-
-Configurable threshold
-
-IP-based alert generation
-
-🖥 Graceful CLI Interface
-
-Clean terminal UI
-
-Color-coded alerts
-
-Safe exit handling (CTRL+C supported)
-
-📁 Project Structure
+```
 soc-detection-engine/
 │
 ├── alerts/              # Alert generation & formatting
@@ -58,70 +48,74 @@ soc-detection-engine/
 ├── reports/             # (Future use)
 ├── main.py              # Entry point
 └── README.md
+```
 
-⚙️ How It Works
+---
 
-User inputs a URL or email text
+## ⚙️ How It Works
 
-Feature extraction module analyzes indicators
+1. User inputs a URL or email text  
+2. Feature extraction module analyzes threat indicators  
+3. Threat engine applies detection logic & scoring  
+4. Log parser analyzes authentication logs  
+5. Alerts are generated with severity classification  
 
-Threat engine applies detection logic & scoring
+---
 
-Log parser analyzes authentication logs
+## ▶️ How To Run
 
-Alerts are generated with severity classification
+Make sure you are inside the project root directory:
 
-▶️ How To Run
-
-Make sure you are in the project root directory:
-
+```bash
 python3 main.py
+```
 
+Type `exit` or `quit` to stop the program.
 
-Type exit or quit to stop.
+---
 
-🧠 Example Detection
+## 🧠 Example Detection
 
-Input:
-
+**Input:**
+```
 go0glr.com
+```
 
-
-Output:
-
+**Output:**
+```
 Status   : PHISHING
 Severity : HIGH
 Reason   : Typosquatting detected (similar to google)
+```
 
-🛠 Future Improvements
+---
 
-Live log monitoring
 
-Multi-file ingestion
 
-Event indexing
+## 🛠 Future Improvements
 
-Query/search functionality
+- Live log monitoring
+- Multi-file ingestion
+- Event indexing
+- Search/query functionality
+- Correlation engine
+- JSON report export
+- Dashboard interface
 
-Correlation engine
+---
 
-JSON report export
-
-Dashboard interface
-
-🎯 Purpose
+## 🎯 Purpose
 
 This project is built to:
 
-Understand SIEM architecture
+- Understand SIEM architecture
+- Learn detection engineering
+- Practice log analysis
+- Build a cybersecurity portfolio project
 
-Learn detection engineering
+---
 
-Practice log analysis
+## 👨‍💻 Author
 
-Build a cybersecurity portfolio project
-
-👨‍💻 Author
-
-Aksht Rana
+**Aksht Rana**  
 Cybersecurity Enthusiast | SOC & Detection Engineering
