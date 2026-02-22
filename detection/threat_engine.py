@@ -81,3 +81,30 @@ def detect_bruteforce(events, threshold=3):
             )
 
     return alerts
+# =====================================================
+# 🔥 CORRELATION: Failed Logins Followed by Success
+# =====================================================
+
+def detect_bruteforce_success(events, threshold=3):
+    ip_failures = {}
+    ip_success = {}
+    alerts = []
+
+    for event in events:
+        ip = event.get("ip")
+        if not ip:
+            continue
+
+        if event.get("failed_login"):
+            ip_failures[ip] = ip_failures.get(ip, 0) + 1
+
+        if event.get("successful_login"):
+            ip_success[ip] = True
+
+    for ip, fail_count in ip_failures.items():
+        if fail_count >= threshold and ip in ip_success:
+            alerts.append(
+                f"CRITICAL: IP {ip} had {fail_count} failed logins followed by SUCCESSFUL login"
+            )
+
+    return alerts
