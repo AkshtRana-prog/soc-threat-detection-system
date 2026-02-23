@@ -60,6 +60,30 @@ def detect_phishing(features):
     else:
         return "LEGITIMATE", reasons, "LOW"
 
+# =====================================================
+# 🔗 CORRELATION: Successful Login After Failures
+# =====================================================
+
+def detect_success_after_failures(events, threshold=3):
+    ip_failures = {}
+    alerts = []
+
+    for event in events:
+        ip = event.get("ip")
+        if not ip:
+            continue
+
+        if event.get("failed_login"):
+            ip_failures[ip] = ip_failures.get(ip, 0) + 1
+
+        if event.get("successful_login"):
+            if ip_failures.get(ip, 0) >= threshold:
+                alerts.append(
+                    f"Suspicious login success after multiple failures from IP: {ip}"
+                )
+
+    return alerts
+
 
 # =====================================================
 # 🔐 BRUTE FORCE DETECTION
