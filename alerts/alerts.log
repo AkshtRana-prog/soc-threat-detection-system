@@ -1,3 +1,12 @@
 2026-02-23 19:14:12 IST | Phishing Check | Input: dfgh)24.com | Result: LOW RISK
 2026-02-23 19:14:12 IST | Brute-force attack suspected from IP: 192.168.1.10 (4 failed attempts)
 2026-02-23 19:14:12 IST | Final Risk Level: MEDIUM | Score: 30
+2026-02-23 19:16:49 IST | Phishing Check | Input: chaqpt.com | Result: SUSPICIOUS
+2026-02-23 19:16:49 IST | Brute-force attack suspected from IP: 192.168.1.10 (4 failed attempts)
+2026-02-23 19:16:49 IST | Final Risk Level: MEDIUM | Score: 30
+2026-02-25 18:12:14 IST | Phishing Check | Input: sdfghjkikgtf-95w248.om | Result: SUSPICIOUS
+2026-02-25 18:12:14 IST | Brute-force attack suspected from IP: 192.168.1.10 (4 failed attempts)
+2026-02-25 18:15:44 IST | Phishing Check | Input: oliu3./hgt8769gck.ol | Result: LOW RISK
+2026-02-25 18:15:44 IST | Brute-force attack suspected from IP: 192.168.1.10 (4 failed attempts)
+2026-02-25 18:15:44 IST | CRITICAL: IP 192.168.1.10 had 4 failed logins followed by SUCCESSFUL login
+2026-02-25 18:15:44 IST | Final Risk Level: HIGH | Score: 70

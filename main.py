@@ -3,6 +3,8 @@ import time
 from datetime import datetime
 from zoneinfo import ZoneInfo  # Python 3.9+
 
+from ingestion.log_reader import read_static_logs, read_live_logs
+from parser.log_parser import parse_auth_log_from_lines
 from detection.threat_engine import (
     detect_phishing,
     detect_bruteforce,
@@ -10,7 +12,6 @@ from detection.threat_engine import (
 )
 from alerts.alert_manager import generate_alert, Colors
 from features.feature_extraction import extract_features
-from parser.log_parser import parse_auth_log
 
 
 # ==================================================
@@ -19,9 +20,9 @@ from parser.log_parser import parse_auth_log
 
 LOG_FILE_PATH = "logs/sample_auth.log"
 ALERT_LOG_PATH = "alerts/alerts.log"
-VERSION = "v1.1.2"
+VERSION = "v1.2.0"
 DEVELOPER = "Aksht Rana"
-TIMEZONE = ZoneInfo("Asia/Kolkata")  # Force IST
+TIMEZONE = ZoneInfo("Asia/Kolkata")
 
 
 # ==================================================
@@ -55,10 +56,8 @@ def calculate_risk_score(phishing_result, bruteforce_alerts, correlation_alerts)
 
     if phishing_result == "Phishing":
         score += 50
-
     if bruteforce_alerts:
         score += 30
-
     if correlation_alerts:
         score += 40
 
@@ -74,6 +73,25 @@ def classify_risk(score):
         return "MEDIUM"
     else:
         return "LOW"
+
+
+# ==================================================
+# MODE SELECTION
+# ==================================================
+
+def select_mode():
+    print("\nSelect Monitoring Mode:")
+    print("1. Static Log Analysis")
+    print("2. Live Log Monitoring")
+
+    while True:
+        choice = input("Enter choice (1/2): ").strip()
+        if choice == "1":
+            return "STATIC"
+        elif choice == "2":
+            return "LIVE"
+        else:
+            print("Invalid choice. Please enter 1 or 2.")
 
 
 # ==================================================
@@ -110,7 +128,6 @@ def show_banner():
     print(f"{Colors.BLUE}{'='*60}{Colors.RESET}")
     print(f"{Colors.YELLOW} System Time : {get_current_time()}{Colors.RESET}")
     print(f"{Colors.YELLOW} Timezone    : Asia/Kolkata (IST){Colors.RESET}")
-    print(f"{Colors.YELLOW} Type 'exit' or 'quit' to stop the system{Colors.RESET}")
     print(f"{Colors.BLUE}{'='*60}{Colors.RESET}\n")
 
 
@@ -122,8 +139,11 @@ def main():
     boot_sequence()
     show_banner()
 
+    mode = select_mode()
+
     try:
         while True:
+
             user_input = input(
                 f"{Colors.GREEN}➤ Enter URL / Email > {Colors.RESET}"
             ).strip()
@@ -157,10 +177,38 @@ def main():
             print(" SOC LOG ANALYSIS")
             print(f"{'─'*60}{Colors.RESET}")
 
-            events = parse_auth_log(LOG_FILE_PATH)
+            # ---------------- STATIC MODE ----------------
+            if mode == "STATIC":
+                log_lines = read_static_logs(LOG_FILE_PATH)
+                events = parse_auth_log_from_lines(log_lines)
 
-            bruteforce_alerts = detect_bruteforce(events)
-            correlation_alerts = detect_bruteforce_success(events)
+                bruteforce_alerts = detect_bruteforce(events)
+                correlation_alerts = detect_bruteforce_success(events)
+
+            # ---------------- LIVE MODE ----------------
+            elif mode == "LIVE":
+                print(f"{Colors.YELLOW}Live Monitoring Active... Press Ctrl+C to stop.{Colors.RESET}")
+                events = []
+
+                for line in read_live_logs(LOG_FILE_PATH):
+                    print(f"{Colors.BLUE}[NEW LOG]{Colors.RESET} {line.strip()}")
+                    events.append(line.strip())
+                    parsed = parse_auth_log_from_lines(events)
+
+                    bruteforce_alerts = detect_bruteforce(parsed)
+                    correlation_alerts = detect_bruteforce_success(parsed)
+
+                    for alert in bruteforce_alerts:
+                        print(f"{Colors.RED}⚠ {alert}{Colors.RESET}")
+                        log_alert(alert)
+
+                    for alert in correlation_alerts:
+                        print(f"{Colors.MAGENTA}⚠ {alert}{Colors.RESET}")
+                        log_alert(alert)
+
+                continue  # skip risk scoring in live loop
+
+            # --------------------------------------------
 
             if bruteforce_alerts:
                 for alert in bruteforce_alerts:
