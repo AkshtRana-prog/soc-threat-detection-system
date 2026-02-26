@@ -1,12 +1,9 @@
-# detection/threat_engine.py
-
 import difflib
 
 BRANDS = ["paypal", "facebook", "instagram", "amazon", "microsoft", "google"]
 
-
 # =====================================================
-# 🔍 PHISHING / DOMAIN THREAT DETECTION
+# 🔍 PHISHING DETECTION
 # =====================================================
 
 def detect_phishing(features):
@@ -14,26 +11,23 @@ def detect_phishing(features):
     reasons = []
 
     domain = features.get("domain", "").lower()
-
-    # Remove TLD for similarity check
     domain_name = domain.split(".")[0]
 
-    # ---- Brand Impersonation (Exact) ----
+    # ---- Exact Brand Impersonation ----
     for brand in BRANDS:
         if brand in domain:
             if not (domain == f"{brand}.com" or domain.endswith(f".{brand}.com")):
                 reasons.append(f"Brand impersonation detected: {brand}")
                 return "PHISHING", reasons, "HIGH"
 
-    # ---- Fuzzy Similarity Detection (Typosquatting) ----
+    # ---- Typosquatting ----
     for brand in BRANDS:
         similarity = difflib.SequenceMatcher(None, domain_name, brand).ratio()
-
-        if similarity > 0.75 and domain_name != brand:
+        if similarity > 0.8 and domain_name != brand:
             reasons.append(f"Typosquatting detected (similar to {brand})")
             return "PHISHING", reasons, "HIGH"
 
-    # ---- Risk-Based Scoring ----
+    # ---- Feature Scoring ----
     rules = {
         "has_ip": ("IP address used instead of domain", 5),
         "has_punycode": ("Punycode detected", 5),
@@ -60,30 +54,6 @@ def detect_phishing(features):
     else:
         return "LEGITIMATE", reasons, "LOW"
 
-# =====================================================
-# 🔗 CORRELATION: Successful Login After Failures
-# =====================================================
-
-def detect_success_after_failures(events, threshold=3):
-    ip_failures = {}
-    alerts = []
-
-    for event in events:
-        ip = event.get("ip")
-        if not ip:
-            continue
-
-        if event.get("failed_login"):
-            ip_failures[ip] = ip_failures.get(ip, 0) + 1
-
-        if event.get("successful_login"):
-            if ip_failures.get(ip, 0) >= threshold:
-                alerts.append(
-                    f"Suspicious login success after multiple failures from IP: {ip}"
-                )
-
-    return alerts
-
 
 # =====================================================
 # 🔐 BRUTE FORCE DETECTION
@@ -105,13 +75,14 @@ def detect_bruteforce(events, threshold=3):
             )
 
     return alerts
+
+
 # =====================================================
-# 🔥 CORRELATION: Failed Logins Followed by Success
+# 🔥 CORRELATION (SEQUENCE BASED)
 # =====================================================
 
 def detect_bruteforce_success(events, threshold=3):
     ip_failures = {}
-    ip_success = {}
     alerts = []
 
     for event in events:
@@ -123,12 +94,10 @@ def detect_bruteforce_success(events, threshold=3):
             ip_failures[ip] = ip_failures.get(ip, 0) + 1
 
         if event.get("successful_login"):
-            ip_success[ip] = True
-
-    for ip, fail_count in ip_failures.items():
-        if fail_count >= threshold and ip in ip_success:
-            alerts.append(
-                f"CRITICAL: IP {ip} had {fail_count} failed logins followed by SUCCESSFUL login"
-            )
+            if ip_failures.get(ip, 0) >= threshold:
+                alerts.append(
+                    f"CRITICAL: IP {ip} had {ip_failures[ip]} failed logins followed by SUCCESSFUL login"
+                )
+                ip_failures[ip] = 0  # reset after detection
 
     return alerts

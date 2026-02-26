@@ -1,55 +1,32 @@
 import re
 
-
-def parse_auth_log(file_path):
-    """
-    Parse auth log from file path (STATIC mode).
-    """
-    parsed_events = []
-
-    with open(file_path, "r") as file:
-        lines = file.readlines()
-
-    return parse_auth_log_from_lines(lines)
-
+FAILED_PATTERN = re.compile(r"Failed password .* from (\d+\.\d+\.\d+\.\d+)")
+SUCCESS_PATTERN = re.compile(r"Accepted password .* from (\d+\.\d+\.\d+\.\d+)")
 
 def parse_auth_log_from_lines(lines):
-    """
-    Parse auth log from list of log lines (LIVE mode compatible).
-    """
-    parsed_events = []
+    events = []
 
     for line in lines:
-        event = {}
 
-        line = line.strip()
+        # Ignore SOC alert lines
+        if "Phishing" in line or "Risk Level" in line:
+            continue
 
-        # ==============================
-        # Extract IP Address
-        # ==============================
-        ip_match = re.search(r"\b\d{1,3}(?:\.\d{1,3}){3}\b", line)
-        event["ip"] = ip_match.group() if ip_match else None
+        failed_match = FAILED_PATTERN.search(line)
+        success_match = SUCCESS_PATTERN.search(line)
 
-        # ==============================
-        # Detect Failed Login
-        # ==============================
-        event["failed_login"] = "failed" in line.lower()
+        if failed_match:
+            events.append({
+                "ip": failed_match.group(1),
+                "failed_login": True,
+                "successful_login": False
+            })
 
-        # ==============================
-        # Detect Successful Login
-        # ==============================
-        event["successful_login"] = "accepted" in line.lower() or "success" in line.lower()
+        elif success_match:
+            events.append({
+                "ip": success_match.group(1),
+                "failed_login": False,
+                "successful_login": True
+            })
 
-        # ==============================
-        # Detect Admin / Privilege Activity
-        # ==============================
-        event["admin_activity"] = "sudo" in line.lower() or "admin" in line.lower()
-
-        # ==============================
-        # Raw Log Line
-        # ==============================
-        event["raw"] = line
-
-        parsed_events.append(event)
-
-    return parsed_events
+    return events

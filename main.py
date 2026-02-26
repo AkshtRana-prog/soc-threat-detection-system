@@ -1,7 +1,7 @@
 import os
 import time
 from datetime import datetime
-from zoneinfo import ZoneInfo  # Python 3.9+
+from zoneinfo import ZoneInfo
 
 from ingestion.log_reader import read_static_logs, read_live_logs
 from parser.log_parser import parse_auth_log_from_lines
@@ -20,9 +20,11 @@ from features.feature_extraction import extract_features
 
 LOG_FILE_PATH = "logs/sample_auth.log"
 ALERT_LOG_PATH = "alerts/alerts.log"
-VERSION = "v1.2.0"
+VERSION = "v1.2.4"
 DEVELOPER = "Aksht Rana"
 TIMEZONE = ZoneInfo("Asia/Kolkata")
+
+LIVE_EVENT_BUFFER = []  # Persistent buffer for live mode
 
 
 # ==================================================
@@ -54,14 +56,17 @@ def log_alert(alert_text):
 def calculate_risk_score(phishing_result, bruteforce_alerts, correlation_alerts):
     score = 0
 
-    if phishing_result == "Phishing":
-        score += 50
-    if bruteforce_alerts:
-        score += 30
-    if correlation_alerts:
+    if phishing_result.upper() == "PHISHING":
         score += 40
+    elif phishing_result.upper() == "SUSPICIOUS":
+        score += 20
 
-    return score
+    score += min(len(bruteforce_alerts) * 10, 30)
+
+    if correlation_alerts:
+        score += 25
+
+    return min(score, 100)
 
 
 def classify_risk(score):
@@ -75,6 +80,12 @@ def classify_risk(score):
         return "LOW"
 
 
+def validate_log_file(path):
+    if not os.path.exists(path):
+        print(f"{Colors.RED}Log file not found: {path}{Colors.RESET}")
+        exit(1)
+
+
 # ==================================================
 # MODE SELECTION
 # ==================================================
@@ -85,7 +96,12 @@ def select_mode():
     print("2. Live Log Monitoring")
 
     while True:
-        choice = input("Enter choice (1/2): ").strip()
+        try:
+            choice = input("Enter choice (1/2): ").strip()
+        except KeyboardInterrupt:
+            print(f"\n{Colors.CYAN}Interrupted by user. Exiting safely...{Colors.RESET}")
+            exit(0)
+
         if choice == "1":
             return "STATIC"
         elif choice == "2":
@@ -132,10 +148,36 @@ def show_banner():
 
 
 # ==================================================
+# LOG ANALYSIS HANDLER
+# ==================================================
+
+def process_events(events):
+    bruteforce_alerts = detect_bruteforce(events)
+    correlation_alerts = detect_bruteforce_success(events)
+
+    if bruteforce_alerts:
+        for alert in bruteforce_alerts:
+            print(f"{Colors.RED}⚠ {alert}{Colors.RESET}")
+            log_alert(alert)
+    else:
+        print(f"{Colors.GREEN}✔ No brute-force activity detected.{Colors.RESET}")
+
+    if correlation_alerts:
+        for alert in correlation_alerts:
+            print(f"{Colors.MAGENTA}⚠ {alert}{Colors.RESET}")
+            log_alert(alert)
+    else:
+        print(f"{Colors.GREEN}✔ No correlated attack activity detected.{Colors.RESET}")
+
+    return bruteforce_alerts, correlation_alerts
+
+# ==================================================
 # MAIN LOOP
 # ==================================================
 
 def main():
+    validate_log_file(LOG_FILE_PATH)
+
     boot_sequence()
     show_banner()
 
@@ -144,22 +186,24 @@ def main():
     try:
         while True:
 
-            user_input = input(
-                f"{Colors.GREEN}➤ Enter URL / Email > {Colors.RESET}"
-            ).strip()
+            try:
+                user_input = input(
+                    f"{Colors.GREEN}➤ Enter URL / Email > {Colors.RESET}"
+                ).strip()
+            except KeyboardInterrupt:
+                print(f"\n{Colors.CYAN}Interrupted by user. Exiting safely...{Colors.RESET}")
+                break
 
             if user_input.lower() in ["exit", "quit"]:
                 print(f"\n{Colors.CYAN}Shutting down SOC Engine...{Colors.RESET}")
-                time.sleep(1)
                 break
 
             if not user_input:
-                print(f"{Colors.YELLOW}Input cannot be empty.{Colors.RESET}\n")
                 continue
 
-            # ==========================================
+            # ==========================
             # PHISHING ANALYSIS
-            # ==========================================
+            # ==========================
             print(f"\n{Colors.CYAN}{'─'*60}")
             print(" PHISHING ANALYSIS")
             print(f"{'─'*60}{Colors.RESET}")
@@ -168,87 +212,57 @@ def main():
             result, reasons, severity = detect_phishing(features)
 
             generate_alert(user_input, result, reasons, severity)
-            log_alert(f"Phishing Check | Input: {user_input} | Result: {result}")
+            log_alert(f"Phishing | Input: {user_input} | Result: {result}")
 
-            # ==========================================
-            # SOC LOG ANALYSIS
-            # ==========================================
+            # ==========================
+            # LOG ANALYSIS
+            # ==========================
             print(f"\n{Colors.CYAN}{'─'*60}")
             print(" SOC LOG ANALYSIS")
             print(f"{'─'*60}{Colors.RESET}")
 
-            # ---------------- STATIC MODE ----------------
             if mode == "STATIC":
                 log_lines = read_static_logs(LOG_FILE_PATH)
-                events = parse_auth_log_from_lines(log_lines)
+                parsed_events = parse_auth_log_from_lines(log_lines)
+                bruteforce_alerts, correlation_alerts = process_events(parsed_events)
 
-                bruteforce_alerts = detect_bruteforce(events)
-                correlation_alerts = detect_bruteforce_success(events)
-
-            # ---------------- LIVE MODE ----------------
             elif mode == "LIVE":
                 print(f"{Colors.YELLOW}Live Monitoring Active... Press Ctrl+C to stop.{Colors.RESET}")
-                events = []
 
-                for line in read_live_logs(LOG_FILE_PATH):
-                    print(f"{Colors.BLUE}[NEW LOG]{Colors.RESET} {line.strip()}")
-                    events.append(line.strip())
-                    parsed = parse_auth_log_from_lines(events)
+                try:
+                    for line in read_live_logs(LOG_FILE_PATH):
+                        print(f"{Colors.BLUE}[NEW LOG]{Colors.RESET} {line.strip()}")
 
-                    bruteforce_alerts = detect_bruteforce(parsed)
-                    correlation_alerts = detect_bruteforce_success(parsed)
+                        parsed = parse_auth_log_from_lines([line.strip()])
+                        LIVE_EVENT_BUFFER.extend(parsed)
 
-                    for alert in bruteforce_alerts:
-                        print(f"{Colors.RED}⚠ {alert}{Colors.RESET}")
-                        log_alert(alert)
+                        # Keep only last 200 events (sliding window)
+                        if len(LIVE_EVENT_BUFFER) > 200:
+                            LIVE_EVENT_BUFFER.pop(0)
 
-                    for alert in correlation_alerts:
-                        print(f"{Colors.MAGENTA}⚠ {alert}{Colors.RESET}")
-                        log_alert(alert)
+                        bruteforce_alerts, correlation_alerts = process_events(LIVE_EVENT_BUFFER)
 
-                continue  # skip risk scoring in live loop
+                except KeyboardInterrupt:
+                    print(f"\n{Colors.CYAN}Live monitoring stopped.{Colors.RESET}")
+                    continue
 
-            # --------------------------------------------
+                continue
 
-            if bruteforce_alerts:
-                for alert in bruteforce_alerts:
-                    print(f"{Colors.RED}⚠ {alert}{Colors.RESET}")
-                    log_alert(alert)
-            else:
-                print(f"{Colors.GREEN}✔ No brute-force activity detected.{Colors.RESET}")
-
-            if correlation_alerts:
-                for alert in correlation_alerts:
-                    print(f"{Colors.MAGENTA}⚠ {alert}{Colors.RESET}")
-                    log_alert(alert)
-            else:
-                print(f"{Colors.GREEN}✔ No correlated attack activity detected.{Colors.RESET}")
-
-            # ==========================================
+            # ==========================
             # RISK SCORING
-            # ==========================================
+            # ==========================
             score = calculate_risk_score(result, bruteforce_alerts, correlation_alerts)
             risk_level = classify_risk(score)
 
             print(f"\n{Colors.BLUE}{'='*60}{Colors.RESET}")
             print(f"{Colors.YELLOW} Risk Score : {score}{Colors.RESET}")
-
-            if risk_level == "CRITICAL":
-                print(f"{Colors.RED} Threat Level : {risk_level}{Colors.RESET}")
-            elif risk_level == "HIGH":
-                print(f"{Colors.MAGENTA} Threat Level : {risk_level}{Colors.RESET}")
-            elif risk_level == "MEDIUM":
-                print(f"{Colors.YELLOW} Threat Level : {risk_level}{Colors.RESET}")
-            else:
-                print(f"{Colors.GREEN} Threat Level : {risk_level}{Colors.RESET}")
-
+            print(f"{Colors.RED if risk_level in ['HIGH','CRITICAL'] else Colors.YELLOW if risk_level=='MEDIUM' else Colors.GREEN} Threat Level : {risk_level}{Colors.RESET}")
             print(f"{Colors.BLUE}{'='*60}{Colors.RESET}\n")
 
             log_alert(f"Final Risk Level: {risk_level} | Score: {score}")
 
     except KeyboardInterrupt:
         print(f"\n{Colors.CYAN}Interrupted by user. Exiting safely...{Colors.RESET}")
-        time.sleep(1)
 
 
 if __name__ == "__main__":

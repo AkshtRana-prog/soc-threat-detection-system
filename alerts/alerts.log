@@ -1,12 +1,10 @@
-2026-02-23 19:14:12 IST | Phishing Check | Input: dfgh)24.com | Result: LOW RISK
-2026-02-23 19:14:12 IST | Brute-force attack suspected from IP: 192.168.1.10 (4 failed attempts)
-2026-02-23 19:14:12 IST | Final Risk Level: MEDIUM | Score: 30
-2026-02-23 19:16:49 IST | Phishing Check | Input: chaqpt.com | Result: SUSPICIOUS
-2026-02-23 19:16:49 IST | Brute-force attack suspected from IP: 192.168.1.10 (4 failed attempts)
-2026-02-23 19:16:49 IST | Final Risk Level: MEDIUM | Score: 30
-2026-02-25 18:12:14 IST | Phishing Check | Input: sdfghjkikgtf-95w248.om | Result: SUSPICIOUS
-2026-02-25 18:12:14 IST | Brute-force attack suspected from IP: 192.168.1.10 (4 failed attempts)
-2026-02-25 18:15:44 IST | Phishing Check | Input: oliu3./hgt8769gck.ol | Result: LOW RISK
-2026-02-25 18:15:44 IST | Brute-force attack suspected from IP: 192.168.1.10 (4 failed attempts)
-2026-02-25 18:15:44 IST | CRITICAL: IP 192.168.1.10 had 4 failed logins followed by SUCCESSFUL login
-2026-02-25 18:15:44 IST | Final Risk Level: HIGH | Score: 70
+Jun 10 10:15:32 kali sshd[1234]: Failed password for invalid user admin from 192.168.1.10 port 22 ssh2
+Jun 10 10:15:40 kali sshd[1234]: Failed password for invalid user root from 192.168.1.10 port 22 ssh2
+Jun 10 10:16:01 kali sshd[1234]: Failed password for invalid user test from 192.168.1.10 port 22 ssh2
+Jun 10 10:16:20 kali sshd[1234]: Failed password for invalid user guest from 192.168.1.10 port 22 ssh2
+Jun 10 10:16:50 kali sshd[1234]: Accepted password for kali from 192.168.1.10 port 22 ssh2
+Jun 10 10:20:11 kali sshd[1234]: Failed password for invalid user user1 from 10.0.0.5 port 22 ssh2
+Jun 10 10:20:25 kali sshd[1234]: Failed password for invalid user user2 from 10.0.0.5 port 22 ssh22026-02-26 12:50:46 IST | Phishing | Input: googal.com | Result: PHISHING
+2026-02-26 12:50:46 IST | Brute-force attack suspected from IP: 192.168.1.10 (4 failed attempts)
+2026-02-26 12:50:46 IST | CRITICAL: IP 192.168.1.10 had 4 failed logins followed by SUCCESSFUL login
+2026-02-26 12:50:46 IST | Final Risk Level: HIGH | Score: 75

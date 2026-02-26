@@ -1,4 +1,13 @@
+import time
+from collections import defaultdict
+from urllib.parse import urlparse
+
+# ==============================
+# PHISHING DETECTION ENGINE
+# ==============================
+
 BRANDS = ["paypal", "facebook", "instagram", "amazon", "microsoft", "google"]
+
 
 def check_phishing(features):
     score = 0
@@ -6,54 +15,49 @@ def check_phishing(features):
 
     domain = features.get("domain", "").lower()
 
-    # Brand impersonation
+    # --------------------------
+    # Brand Impersonation Check
+    # --------------------------
     for brand in BRANDS:
         if brand in domain:
-            if not (domain == f"{brand}.com" or domain.endswith(f".{brand}.com")):
+            # Allow official domains only
+            if not (
+                domain == f"{brand}.com"
+                or domain.endswith(f".{brand}.com")
+            ):
                 reasons.append(f"Brand impersonation detected: {brand}")
                 return "PHISHING", reasons, "HIGH"
 
+    # --------------------------
     # Typosquatting
+    # --------------------------
     if features.get("possible_typosquat"):
-        reasons.append("Brand impersonation detected (typosquatting attack)")
+        reasons.append("Typosquatting attack detected")
         return "PHISHING", reasons, "HIGH"
 
-    if features.get("has_ip"):
-        score += 5
-        reasons.append("IP address used instead of domain")
+    # --------------------------
+    # Feature-Based Scoring
+    # --------------------------
+    risk_weights = {
+        "has_ip": 5,
+        "has_punycode": 5,
+        "has_at_symbol": 3,
+        "shortened_url": 3,
+        "suspicious_subdomain": 3,
+        "redirect_pattern": 3,
+        "has_hyphen": 1,
+        "has_numbers_in_domain": 1,
+        "long_subdomain": 1,
+    }
 
-    if features.get("has_punycode"):
-        score += 5
-        reasons.append("Punycode detected")
+    for feature, weight in risk_weights.items():
+        if features.get(feature):
+            score += weight
+            reasons.append(feature.replace("_", " ").capitalize())
 
-    if features.get("has_at_symbol"):
-        score += 3
-        reasons.append("Contains '@' symbol")
-
-    if features.get("shortened_url"):
-        score += 3
-        reasons.append("Shortened URL detected")
-
-    if features.get("suspicious_subdomain"):
-        score += 3
-        reasons.append("Suspicious subdomain detected")
-
-    if features.get("redirect_pattern"):
-        score += 3
-        reasons.append("Redirect pattern detected")
-
-    if features.get("has_hyphen"):
-        score += 1
-        reasons.append("Hyphen used in domain")
-
-    if features.get("has_numbers_in_domain"):
-        score += 1
-        reasons.append("Numbers used in domain")
-
-    if features.get("long_subdomain"):
-        score += 1
-        reasons.append("Long subdomain detected")
-
+    # --------------------------
+    # Final Classification
+    # --------------------------
     if score >= 6:
         return "PHISHING", reasons, "HIGH"
     elif score >= 3:
@@ -62,19 +66,49 @@ def check_phishing(features):
         return "LOW RISK", reasons, "LOW"
     else:
         return "LEGITIMATE", reasons, "LOW"
-    
-    
-def detect_bruteforce(events, threshold=3):
-    ip_counter = {}
-    alerts = []
 
-    for event in events:
-        if event.get("failed_login") and event.get("ip"):
-            ip = event["ip"]
-            ip_counter[ip] = ip_counter.get(ip, 0) + 1
 
-    for ip, count in ip_counter.items():
-        if count >= threshold:
-            alerts.append(f"Brute-force attack suspected from IP: {ip} ({count} failed attempts)")
+# ==============================
+# BRUTE FORCE DETECTION ENGINE
+# ==============================
 
-    return alerts
+class BruteForceDetector:
+    def __init__(self, threshold=3, time_window=60):
+        self.threshold = threshold
+        self.time_window = time_window  # seconds
+        self.failed_attempts = defaultdict(list)
+
+    def process_event(self, event):
+        """
+        Event format expected:
+        {
+            "ip": "192.168.1.10",
+            "failed_login": True
+        }
+        """
+
+        ip = event.get("ip")
+        failed = event.get("failed_login")
+
+        if not ip or not failed:
+            return None
+
+        current_time = time.time()
+        self.failed_attempts[ip].append(current_time)
+
+        # Keep only recent attempts within time window
+        self.failed_attempts[ip] = [
+            t for t in self.failed_attempts[ip]
+            if current_time - t <= self.time_window
+        ]
+
+        if len(self.failed_attempts[ip]) >= self.threshold:
+            return {
+                "type": "BRUTE_FORCE",
+                "ip": ip,
+                "attempts": len(self.failed_attempts[ip]),
+                "severity": "HIGH",
+                "timestamp": current_time
+            }
+
+        return None
